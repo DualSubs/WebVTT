@@ -1,3 +1,5 @@
+// refer: https://www.w3.org/TR/webvtt1/
+
 function WebVTT(name, opts) {
 	return new (class {
 		constructor(name, opts) {
@@ -25,11 +27,12 @@ function WebVTT(name, opts) {
 
 			// 数组化srt/webVTT格式的Regex，预留webVTT的options以便未来修改字幕属性
 			//const webVTT_Regex = /^(?<srtNum>\d+)?[(\r\n)\r\n]?(?<timeLine>(?<timeStamp>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) ?(?<options>.*)?[(\r\n)\r\n](?<text>.+)/
-			const webVTT_Regex = (options.includes("ms")) ? /^(?<srtNum>\d+)?[(\r\n)\r\n]?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) ?(?<options>.+)?[(\r\n)\r\n](?<text>(?:.+)[(\r\n)\r\n]?(?:.+)?)/
-				: /^(?<srtNum>\d+)?[(\r\n)\r\n]?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) ?(?<options>.+)?[(\r\n)\r\n](?<text>(?:.+)[(\r\n)\r\n]?(?:.+)?)/
+			const webVTT_headers_Regex = /(WEBVTT)?[(\r\n)\r\n]{2,}?(?<CSSboxes>.*::cue(-region)?\(?.*\)?(?: ?{.+})?[(\r\n)\r\n]{2,})?/
+			const webVTT_body_Regex = (options.includes("ms")) ? /^(?<srtNum>\d+)?[(\r\n)\r\n]?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[(\r\n)\r\n](?<text>(?:.+)[(\r\n)\r\n]?(?:.+)?)/
+				: /^(?<srtNum>\d+)?[(\r\n)\r\n]?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[(\r\n)\r\n](?<text>(?:.+)[(\r\n)\r\n]?(?:.+)?)/
 			$.log(`🚧 ${$.name}, parse WebVTT`, `webVTT_Regex内容: ${webVTT_Regex}`, "");
 			// 使用map映射对数组化的字幕进行正则命名组筛选
-			json.body = json.body.map(item => item = item.match(webVTT_Regex)?.groups ?? "");
+			json.body = json.body.map(item => item = item.match(webVTT_body_Regex)?.groups ?? "");
 			// 或者用forEach实现
 			/*
 			json.body.forEach((item, i) => {
@@ -39,17 +42,24 @@ function WebVTT(name, opts) {
 			// 数组去空(不符合正则筛选的数据)
 			json.body = json.body.filter(Boolean);
 			// 使用map映射对JSON字幕进行格式化
-			json.body = json.body.map(item => {
-				if (json.headers[0] !== "WEBVTT") {
+			json.body = json.body.map((item, i) => {
+				// 加入索引号方便文本传输翻译字幕
+				item.index = i;
+				// SRT格式字幕转换时间分隔符
+				if (json.headers?.[0] !== "WEBVTT") {
 					item.timeLine = item.timeLine.replace(",", ".");
 					item.startTime = item.startTime.replace(",", ".");
+					item.endTime = item.endTime.replace(",", ".");
 				}
+				// 是否包含UNIX时间戳
 				if (options.includes("timeStamp")) {
 					let ISOString = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
 					item.timeStamp = options.includes("ms") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 				}
+				// 是否将多行文本分割为数组,方便交替插入文本
 				if (options.includes("multiText")) {
-					item.text = item.text.split(/[(\r\n)\r\n]/); // \r\n, \r, \n 是三种不同系统的换行方式
+					// \r\n, \r, \n 是三种不同系统的换行方式
+					item.text = item.text.split(/[(\r\n)\r\n]/);
 				}
 				return item
 			});
@@ -75,14 +85,14 @@ function WebVTT(name, opts) {
 
 		stringify(json = { headers: new Array, body: new Array }, options = ["milliseconds", "\n"]) {
 			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
-			let vtt = {
-				headers: (json.headers[0] == "WEBVTT") ? json.headers.join(newLine + newLine) : "WEBVTT",
-				body: json.body.map(item => {
+			let vtt = [
+				json.headers = (json.headers?.[0] == "WEBVTT") ? [json.headers[0], json.headers[1] + json.headers[2]].join(newLine + newLine) : "WEBVTT",
+				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(newLine);
-					item = `${item.timeLine} ${item.options}${newLine}${item.text}`.join(newLine + newLine);
+					item = `${item.timeLine} ${item.options}${newLine}${item.text}`;
 					return item;
-				})
-			}.join(newLine + newLine);
+				}).join(newLine + newLine)
+			].join(newLine + newLine);
 			// 按步骤分行写法
 			/*
 			if (options.includes("cue"))
