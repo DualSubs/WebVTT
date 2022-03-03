@@ -120,7 +120,7 @@ function WebVTT(name, opts) {
 			return json
 		};
 
-		stringify(json = { headers: new Array, body: new Array }, options = ["milliseconds", "\n"]) {
+		stringify(json = { headers: new Object, body: new Array }, options = ["milliseconds", "\n"]) {
 			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
 			let vtt = [
 				// 原版
