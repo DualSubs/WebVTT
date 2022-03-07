@@ -13,9 +13,17 @@ function WebVTT(name, opts) {
 			// 数组化srt/webVTT格式的headers的Regex，预留webVTT的CSSboxes以便未来修改字幕样式
 			// .*::cue.*(\(.*\))?((\n|.)*})?
 			// .*::cue.*(?:\(.*\))?(?:(?:\n|.)*})?
+			/***************** v1.0.0-beta *****************/
 			//const webVTT_headers_Regex = /(?<fileType>WEBVTT)?[^]{2}?(?<CSSStyle>STYLE)[^]/;
+			/***************** v1.1.0-beta *****************/
 			//const webVTT_headers_Regex = /^(?:(?<fileType>WEBVTT)[^][^])?(?:(?<CSSStyle>STYLE)[^](?<CSSboxes>.*)[^][^])?/;
-			const webVTT_headers_Regex = /^(?:(?<fileType>WEBVTT)[^][^])?(?:(?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*})?)[^][^])?/;
+			/***************** v1.2.0 *****************/
+			//const webVTT_headers_Regex = /^(?:(?<fileType>WEBVTT)[^][^])?(?:(?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*})?)[^][^])?/;
+			/***************** v1.3.0-beta *****************/
+			const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
+			const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
+			//const headers_STYLE_Regex = /^(?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*}$)?)/m;
+			//const webVTT_headers_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>X-.+[^])*[^]((?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*})*)[^][^])?/;
 			//$.log(`🚧 ${$.name}, parse WebVTT`, `webVTT_Regex内容: ${webVTT_headers_Regex}`, "");
 			//$.log(`🚧 ${$.name}, parse WebVTT`, `vtt.match(webVTT_headers_Regex)内容: ${vtt.match(webVTT_headers_Regex)}`, "");
 			//$.log(`🚧 ${$.name}, parse WebVTT`, `vtt.match(webVTT_headers_Regex).groups内容: ${vtt.match(webVTT_headers_Regex).groups}`, "");
@@ -29,7 +37,7 @@ function WebVTT(name, opts) {
 				: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.+)/
 			//$.log(`🚧 ${$.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 
-			/***************** 1.0.0版 *****************/
+			/***************** v1.0.0-beta *****************/
 			/*
 			let array = vtt.split(/[(\r\n)\r\n]{2,}/);
 			let json = {
@@ -45,25 +53,7 @@ function WebVTT(name, opts) {
 				//$.log(`🚧 ${$.name}, parse WebVTT`, `json.body内容: ${json.body}`, "");
 			}
 			*/
-
-			/***************** 正式版 *****************/
-			//let array = vtt.split(/[(\r\n)\r\n]{2,}/);
-			let json = {
-				headers: vtt.match(webVTT_headers_Regex)?.groups ?? null,
-				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(webVTT_body_Regex)?.groups ?? "")
-			};
-			// 使用map映射对数组化的字幕进行正则命名组筛选
-			//json.body = json.body.map(item => item = item.match(webVTT_body_Regex)?.groups ?? "");
-			// 或者用forEach实现
-			/*
-			json.body.forEach((item, i) => {
-				json.body[i] = item.match(webVTT_Regex)?.groups ?? "";
-			});
-			*/
-			// 数组去空(不符合正则筛选的数据)
-			json.body = json.body.filter(Boolean);
-
-			/***************** 测试版 *****************/
+			/***************** v1.1.0-beta *****************/
 			/*
 			// 字符串末位追加两个换行符
 			//vtt = vtt + "\n\n"
@@ -73,7 +63,32 @@ function WebVTT(name, opts) {
 				body: [...vtt.matchAll(webVTT_body_Regex)].filter(Boolean) //正则，去空
 			};
 			*/
+			/***************** v1.2.0-beta *****************/
+			// 使用map映射对数组化的字幕进行正则命名组筛选
+			//json.body = json.body.map(item => item = item.match(webVTT_body_Regex)?.groups ?? "");
+			// 或者用forEach实现
+			/*
+			json.body.forEach((item, i) => {
+				json.body[i] = item.match(webVTT_Regex)?.groups ?? "";
+			});
+			*/
+			/***************** v1.2.0 *****************/
+			//let array = vtt.split(/[(\r\n)\r\n]{2,}/);
+			/*
+			let json = {
+				headers: vtt.match(webVTT_headers_Regex)?.groups ?? null,
+				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(webVTT_body_Regex)?.groups ?? "")
+			};
+			*/
+			/***************** v1.3.0-beta *****************/
+			let json = {
+				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
+				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
+				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(webVTT_body_Regex)?.groups ?? "")
+			};
 
+			// 数组去空(不符合正则筛选的数据)
+			json.body = json.body.filter(Boolean);
 			// 使用map映射对JSON字幕进行格式化
 			json.body = json.body.map((item, i) => {
 				// 加入索引号方便文本传输翻译字幕
@@ -120,13 +135,17 @@ function WebVTT(name, opts) {
 			return json
 		};
 
-		stringify(json = { headers: new Object, body: new Array }, options = ["milliseconds", "\n"]) {
+		stringify(json = { headers: [], CSS: [], body: [] }, options = ["milliseconds", "\n"]) {
 			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
 			let vtt = [
-				// 原版
+				//json.headers = json.headers?.fileType || "WEBVTT",
+				/***************** v1.0.0-beta *****************/
 				//json.headers = (json.headers?.[0] == "WEBVTT") ? json.headers.join(newLine + newLine) : "WEBVTT",
-				// 正式版
-				json.headers = (json?.headers?.CSSStyle) ? ["WEBVTT", "STYLE" + newLine + json.headers.CSSboxes].join(newLine + newLine) : "WEBVTT",
+				/***************** v1.2.0 *****************/
+				//json.headers = (json?.headers?.CSSStyle) ? ["WEBVTT", "STYLE" + newLine + json.headers.CSSboxes].join(newLine + newLine) : "WEBVTT",
+				/***************** v1.3.0-beta *****************/
+				json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(newLine) : json.headers?.fileType ?? "WEBVTT",
+				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(newLine) : null,
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(newLine);
 					item = `${item.timeLine} ${item.options}${newLine}${item.text}`;
