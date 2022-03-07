@@ -7,11 +7,13 @@ function WebVTT(name, opts) {
 		};
 
 		parse(vtt = new String, options = ["timeStamp"]) {
-			const webVTT_headers_Regex = /^(?:(?<fileType>WEBVTT)[^][^])?(?:(?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*})?)[^][^])?/;
+			const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
+			const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
 			const webVTT_body_Regex = (options.includes("ms")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.+)/
 				: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.+)/
 			let json = {
-				headers: vtt.match(webVTT_headers_Regex)?.groups ?? null,
+				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
+				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
 				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(webVTT_body_Regex)?.groups ?? "")
 			};
 			json.body = json.body.filter(Boolean);
@@ -34,10 +36,11 @@ function WebVTT(name, opts) {
 			return json
 		};
 
-		stringify(json = { headers: new Object, body: new Array }, options = ["milliseconds", "\n"]) {
+		stringify(json = { headers: {}, CSS: {}, body: [] }, options = ["milliseconds", "\n"]) {
 			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
 			let vtt = [
-				json.headers = (json?.headers?.CSSStyle) ? ["WEBVTT", "STYLE" + newLine + json.headers.CSSboxes].join(newLine + newLine) : "WEBVTT",
+				json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(newLine) : json.headers?.fileType ?? "WEBVTT",
+				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(newLine) : null,
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(newLine);
 					item = `${item.timeLine} ${item.options}${newLine}${item.text}`;
