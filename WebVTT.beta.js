@@ -135,7 +135,7 @@ function WebVTT(name, opts) {
 			return json
 		};
 
-		stringify(json = { headers: [], CSS: [], body: [] }, options = ["milliseconds", "\n"]) {
+		stringify(json = { headers: {}, CSS: {}, body: [] }, options = ["milliseconds", "\n"]) {
 			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
 			let vtt = [
 				//json.headers = json.headers?.fileType || "WEBVTT",
