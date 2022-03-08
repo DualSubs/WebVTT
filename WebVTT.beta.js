@@ -148,7 +148,7 @@ function WebVTT(name, opts) {
 				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(newLine) : null,
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(newLine);
-					item = `${item.timeLine} ${item.options}${newLine}${item.text}`;
+					item = `${item.timeLine} ${item?.options ?? ""}${newLine}${item.text}`;
 					return item;
 				}).join(newLine + newLine)
 			].join(newLine + newLine);
