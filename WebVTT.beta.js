@@ -33,8 +33,8 @@ function WebVTT(name, opts) {
 			//const webVTT_body_Regex = (options.includes("ms")) ? /(?<srtNum>\d+)?[^]?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.+)[^][^]/g
 			//	: /(?<srtNum>\d+)?[^]?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.+)[^][^]/g;
 			// match版
-			const webVTT_body_Regex = (options.includes("ms")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.+)/
-				: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.+)/
+			const body_CUE_Regex = (options.includes("ms")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.*[^]*)$/
+				: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.*[^]*)$/
 			//$.log(`🚧 ${$.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 
 			/***************** v1.0.0-beta *****************/
@@ -84,7 +84,11 @@ function WebVTT(name, opts) {
 			let json = {
 				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
 				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
-				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(webVTT_body_Regex)?.groups ?? "")
+				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => {
+					$.log(`🚧 ${$.name}`, `item: ${item}`);
+					item = item.match(body_CUE_Regex)?.groups ?? ""
+					$.log(`🚧 ${$.name}`, `${item?.text ?? ""}`, "");
+				})
 			};
 
 			// 数组去空(不符合正则筛选的数据)
