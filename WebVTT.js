@@ -9,12 +9,12 @@ function WebVTT(name, opts) {
 		parse(vtt = new String, options = ["timeStamp"]) {
 			const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
 			const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
-			const webVTT_body_Regex = (options.includes("ms")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.+)/
-				: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.+)/
+			const body_CUE_Regex = (options.includes("ms")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.*[^]*)$/
+				: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.*[^]*)$/
 			let json = {
 				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
 				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
-				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(webVTT_body_Regex)?.groups ?? "")
+				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
 			};
 			json.body = json.body.filter(Boolean);
 			json.body = json.body.map((item, i) => {
@@ -28,7 +28,9 @@ function WebVTT(name, opts) {
 					let ISOString = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
 					item.timeStamp = options.includes("ms") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 				}
-				if (options.includes("multiText")) {
+				if (options.includes("singleLine")) {
+					item.text = item.text.replace(/[(\r\n)\r\n]/, " ");
+				} else if (options.includes("multiLine")) {
 					item.text = item.text.split(/[(\r\n)\r\n]/);
 				}
 				return item
@@ -43,7 +45,7 @@ function WebVTT(name, opts) {
 				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(newLine) : null,
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(newLine);
-					item = `${item.timeLine} ${item.options}${newLine}${item.text}`;
+					item = `${item.timeLine} ${item?.options ?? ""}${newLine}${item.text}`;
 					return item;
 				}).join(newLine + newLine)
 			].join(newLine + newLine);
