@@ -108,8 +108,10 @@ function WebVTT(name, opts) {
 					item.timeStamp = options.includes("ms") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 				}
 				// 是否将多行文本分割为数组，方便未来提供交替插入文本功能
-				if (options.includes("multiText")) {
-					// \r\n, \r, \n 是三种不同系统的换行方式
+				// \r\n, \r, \n 是三种不同系统的换行方式
+				if (options.includes("singleLine")) {
+					item.text = item.text.replace(/[(\r\n)\r\n]/, " ");
+				} else if (options.includes("multiLine")) {
 					item.text = item.text.split(/[(\r\n)\r\n]/);
 				}
 				return item
