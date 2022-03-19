@@ -6,7 +6,7 @@ function WebVTT(name, opts) {
 			Object.assign(this, opts)
 		};
 
-		parse(vtt = new String, options = ["timeStamp"]) {
+		parse(vtt = "", options = ["timeStamp"]) {
 			$.log(`🚧 ${$.name}, parse WebVTT`, "");
 
 			// 使用[^]而非[(\r\n)\r\n]来匹配换行符 执行效率提高一倍 https://stackoverflow.com/a/16119722
@@ -85,9 +85,10 @@ function WebVTT(name, opts) {
 				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
 				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
 				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => {
-					$.log(`🚧 ${$.name}`, `item: ${item}`);
+					//$.log(`🚧 ${$.name}`, `item: ${item}`);
 					item = item.match(body_CUE_Regex)?.groups ?? ""
-					$.log(`🚧 ${$.name}`, `${item?.text ?? ""}`, "");
+					//$.log(`🚧 ${$.name}`, `${item?.text ?? ""}`, "");
+					return item;
 				})
 			};
 
@@ -136,12 +137,12 @@ function WebVTT(name, opts) {
 				json.body[i].text = item.text.split(/[(\r\n)\r\n]/); // \r\n, \r, \n 是三种不同系统的换行方式
 			});
 			*/
-			$.log(`🚧 ${$.name}, parse WebVTT`, `json.headers内容: ${JSON.stringify(json.headers)}`, "");
-			$.log(`🚧 ${$.name}, parse WebVTT`, `json.body内容: ${JSON.stringify(json.body)}`, "");
+			//$.log(`🚧 ${$.name}, parse WebVTT`, `json.headers内容: ${JSON.stringify(json.headers)}`, "");
+			//$.log(`🚧 ${$.name}, parse WebVTT`, `json.body内容: ${JSON.stringify(json.body)}`, "");
 			return json
 		};
 
-		stringify(json = { headers: {}, CSS: {}, body: [] }, options = ["milliseconds", "\n"]) {
+		stringify(json = { headers: {}, CSS: {}, body: [] }, options = ["milliseconds"]) {
 			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
 			let vtt = [
 				//json.headers = json.headers?.fileType || "WEBVTT",
@@ -170,6 +171,32 @@ function WebVTT(name, opts) {
 			json = json.join(newLine + newLine);
 			*/
 			return vtt
+		};
+
+		json2txt(json = { headers: {}, CSS: {}, body: [] }, options = []) {
+			$.log(`🚧 ${$.name}, to TXT`, "");
+			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
+			let txt = json.body.map((item,i) => {
+				item = [i, item.timeStamp, item.text].join(newLine);
+				return item;
+			}).join(newLine + newLine);
+			return txt;
+		};
+
+		txt2json(txt = "", options = []) {
+			$.log(`🚧 ${$.name}, from TXT`, "");
+			const body_CUE_Regex = /^(?<srtNum>\d+)[^](?<timeStamp>\d+)[^](?<text>.*[^]*)$/;
+			let json = {
+				headers: null,
+				CSS: null,
+				body: txt.split(/[(\r\n)\r\n]{2,}/).map(item => {
+					//$.log(`🚧 ${$.name}`, `item: ${item}`);
+					item = item.match(body_CUE_Regex)?.groups ?? ""
+					//$.log(`🚧 ${$.name}`, `${JSON.stringify(item)}`, "");
+					return item;
+				})
+			};
+			return json;
 		};
 	})(name, opts)
 }
