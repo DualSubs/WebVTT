@@ -6,7 +6,7 @@ function WebVTT(name, opts) {
 			Object.assign(this, opts)
 		};
 
-		parse(vtt = new String, options = ["timeStamp"]) {
+		parse(vtt = "", options = ["timeStamp"]) {
 			const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
 			const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
 			const body_CUE_Regex = (options.includes("ms")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.*[^]*)$/
@@ -38,7 +38,7 @@ function WebVTT(name, opts) {
 			return json
 		};
 
-		stringify(json = { headers: {}, CSS: {}, body: [] }, options = ["milliseconds", "\n"]) {
+		stringify(json = { headers: {}, CSS: {}, body: [] }, options = ["milliseconds"]) {
 			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
 			let vtt = [
 				json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(newLine) : json.headers?.fileType ?? "WEBVTT",
@@ -50,6 +50,22 @@ function WebVTT(name, opts) {
 				}).join(newLine + newLine)
 			].join(newLine + newLine);
 			return vtt
+		};
+
+		json2txt(json = { headers: {}, CSS: {}, body: [] }, options = []) {
+			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
+			let txt = json.body.map((item, i) => item = [i, item.timeStamp, item.text].join(newLine)).join(newLine + newLine);
+			return txt;
+		};
+
+		txt2json(txt = "", options = []) {
+			const body_CUE_Regex = /^(?<srtNum>\d+)[^](?<timeStamp>\d+)[^](?<text>.*[^]*)$/;
+			let json = {
+				headers: null,
+				CSS: null,
+				body: txt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
+			};
+			return json;
 		};
 	})(name, opts)
 }
