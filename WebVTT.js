@@ -1,71 +1,71 @@
 // refer: https://www.w3.org/TR/webvtt1/
-function WebVTT(name, opts) {
-	return new (class {
-		constructor(name, opts) {
-			this.name = name
-			Object.assign(this, opts)
-		};
+export class WebVTT {
+	constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
+		this.name = "WebVTT v1.6.0";
+		this.opts = opts;
+		this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
+		this.vtt = new String;
+		this.txt = new String;
+		this.json = { headers: {}, CSS: {}, body: [] };
+	};
 
-		parse(vtt = "", options = ["timeStamp"]) {
-			const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
-			const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
-			const body_CUE_Regex = (options.includes("ms")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.*[^]*)$/
-				: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.*[^]*)$/
-			let json = {
-				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
-				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
-				body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
-			};
-			json.body = json.body.filter(Boolean);
-			json.body = json.body.map((item, i) => {
-				item.index = i;
-				if (json.headers?.fileType !== "WEBVTT") {
-					item.timeLine = item.timeLine.replace(",", ".");
-					item.startTime = item.startTime.replace(",", ".");
-					item.endTime = item.endTime.replace(",", ".");
-				}
-				if (options.includes("timeStamp")) {
-					let ISOString = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
-					item.timeStamp = options.includes("ms") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
-				}
-				if (options.includes("singleLine")) {
-					item.text = item.text.replace(/[(\r\n)\r\n]/, " ");
-				} else if (options.includes("multiLine")) {
-					item.text = item.text.split(/[(\r\n)\r\n]/);
-				}
-				return item
-			});
-			return json
+	parse(vtt = this.vtt) {
+		const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
+		const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
+		const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d) --> (?<endTime>(?:\d\d:)?\d\d:\d\d(?:\.|,)\d\d\d)) ?(?<options>.+)?[^](?<text>.*[^]*)$/
+			: /^(?:(?<srtNum>\d+)[(\r\n)\r\n])?(?<timeLine>(?<startTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>.*[^]*)$/
+		let json = {
+			headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
+			CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
+			body: vtt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
 		};
+		json.body = json.body.filter(Boolean);
+		json.body = json.body.map((item, i) => {
+			item.index = i;
+			if (json.headers?.fileType !== "WEBVTT") {
+				item.timeLine = item.timeLine.replace(",", ".");
+				item.startTime = item.startTime.replace(",", ".");
+				item.endTime = item.endTime.replace(",", ".");
+			}
+			if (this.opts.includes("timeStamp")) {
+				let ISOString = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
+				item.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
+			}
+			if (this.opts.includes("singleLine")) {
+				item.text = item.text.replace(/[(\r\n)\r\n]/, " ");
+			} else if (this.opts.includes("multiLine")) {
+				item.text = item.text.split(/[(\r\n)\r\n]/);
+			}
+			return item
+		});
+		return json
+	};
 
-		stringify(json = { headers: {}, CSS: {}, body: [] }, options = ["milliseconds"]) {
-			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
-			let vtt = [
-				json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(newLine) : json.headers?.fileType ?? "WEBVTT",
-				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(newLine) : null,
-				json.body = json.body.map(item => {
-					if (Array.isArray(item.text)) item.text = item.text.join(newLine);
-					item = `${item.timeLine} ${item?.options ?? ""}${newLine}${item.text}`;
-					return item;
-				}).join(newLine + newLine)
-			].join(newLine + newLine);
-			return vtt
-		};
+	stringify(json = this.json) {
+		let vtt = [
+			json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(this.newLine) : json.headers?.fileType ?? "WEBVTT",
+			json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
+			json.body = json.body.map(item => {
+				if (Array.isArray(item.text)) item.text = item.text.join(this.newLine);
+				item = `${item.timeLine} ${item?.options ?? ""}${this.newLine}${item.text}`;
+				return item;
+			}).join(this.newLine + this.newLine)
+		].join(this.newLine + this.newLine);
+		return vtt
+	};
 
-		json2txt(json = { headers: {}, CSS: {}, body: [] }, options = []) {
-			const newLine = (options.includes("\n")) ? "\n" : (options.includes("\r")) ? "\r" : (options.includes("\r\n")) ? "\r\n" : "\n";
-			let txt = json.body.map((item, i) => item = [i, item.timeStamp, item.text].join(newLine)).join(newLine + newLine);
-			return txt;
-		};
+	json2txt(json = this.json) {
+		let txt = json.body.map((item, i) => item = [i, item.timeStamp, item.text].join(this.newLine)).join(this.newLine + this.newLine);
+		return txt;
+	};
 
-		txt2json(txt = "", options = []) {
-			const body_CUE_Regex = /^(?<srtNum>\d+)[^](?<timeStamp>\d+)[^](?<text>.*[^]*)$/;
-			let json = {
-				headers: null,
-				CSS: null,
-				body: txt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
-			};
-			return json;
+	txt2json(txt = this.txt) {
+		const body_CUE_Regex = /^(?<srtNum>\d+)[^](?<timeStamp>\d+)[^](?<text>.*[^]*)$/;
+		let json = {
+			headers: null,
+			CSS: null,
+			body: txt.split(/[(\r\n)\r\n]{2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
 		};
-	})(name, opts)
-}
+		return json;
+	};
+};
