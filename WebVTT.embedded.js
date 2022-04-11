@@ -2,7 +2,7 @@
 function WebVTT(opts) {
 	return new (class {
 		constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-			this.name = "WebVTT v1.6.2";
+			this.name = "WebVTT v1.7.0";
 			this.opts = opts;
 			this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 			this.vtt = new String;
@@ -13,12 +13,12 @@ function WebVTT(opts) {
 		parse(vtt = this.vtt) {
 			const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
 			const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
-			const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)[\r\n])?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
-			: /^((?<srtNum>\d+)[\r\n])?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
+			const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
+			: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 			let json = {
 				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
 				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
-				body: vtt.split(/(?:\r|\n|\r\n){2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
+				body: vtt.split(/\r\n\r\n|\r\r|\n\n/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
 			};
 
 			json.body = json.body.filter(Boolean);
@@ -33,10 +33,11 @@ function WebVTT(opts) {
 					let ISOString = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
 					item.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 				}
+				item.text = item.text.trim();
 				if (this.opts.includes("singleLine")) {
-					item.text = item.text.replace(/(?:\r|\n|\r\n)/, " ");
+					item.text = item.text.replace(/\r\n|\r|\n/, " ");
 				} else if (this.opts.includes("multiLine")) {
-					item.text = item.text.split(/(?:\r|\n|\r\n)/);
+					item.text = item.text.split(/\r\n|\r|\n/);
 				}
 				return item
 			});
@@ -66,7 +67,7 @@ function WebVTT(opts) {
 			let json = {
 				headers: null,
 				CSS: null,
-				body: txt.split(/(?:\r|\n|\r\n){2,}/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
+				body: txt.split(/\r\n\r\n|\r\r|\n\n/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
 			};
 			return json;
 		};
