@@ -1,7 +1,7 @@
 // refer: https://www.w3.org/TR/webvtt1/
 export class WebVTT {
 	constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-		this.name = "WebVTT v1.6.1";
+		this.name = "WebVTT v1.6.2";
 		this.opts = opts;
 		this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 		this.vtt = new String;
@@ -89,7 +89,7 @@ export class WebVTT {
 		let json = {
 			headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
 			CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
-			body: vtt.split(/[\r\n]{2,}/).map(item => {
+			body: vtt.split(/(?:\r|\n|\r\n){2,}/).map(item => {
 				//$.log(`🚧 ${$.name}`, `item: ${item}`);
 				item = item.match(body_CUE_Regex)?.groups ?? ""
 				//$.log(`🚧 ${$.name}`, `${item?.text ?? ""}`, "");
@@ -120,9 +120,9 @@ export class WebVTT {
 			// 是否将多行文本分割为数组，方便未来提供交替插入文本功能
 			// \r\n, \r, \n 是三种不同系统的换行方式
 			if (this.opts.includes("singleLine")) {
-				item.text = item.text.replace(/[\r\n]/, " ");
+				item.text = item.text.replace(/(?:\r|\n|\r\n)/, " ");
 			} else if (this.opts.includes("multiLine")) {
-				item.text = item.text.split(/[\r\n]/);
+				item.text = item.text.split(/(?:\r|\n|\r\n)/);
 			}
 			return item
 		});
@@ -195,7 +195,7 @@ export class WebVTT {
 		let json = {
 			headers: null,
 			CSS: null,
-			body: txt.split(/[\r\n]{2,}/).map(item => {
+			body: txt.split(/(?:\r|\n|\r\n){2,}/).map(item => {
 				//$.log(`🚧 ${$.name}`, `item: ${item}`);
 				item = item.match(body_CUE_Regex)?.groups ?? ""
 				//$.log(`🚧 ${$.name}`, `${JSON.stringify(item)}`, "");
