@@ -180,31 +180,5 @@ function WebVTT(opts) {
 			*/
 			return vtt
 		};
-
-		json2txt(json = this.json) {
-			$.log(`🚧 ${this.name}, to TXT`, "");
-			//const newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
-			let txt = json.body.map((item, i) => {
-				item = [i, item.timeStamp, item.text].join(this.newLine);
-				return item;
-			}).join(this.newLine + this.newLine);
-			return txt;
-		};
-
-		txt2json(txt = this.txt) {
-			$.log(`🚧 ${this.name}, from TXT`, "");
-			const body_CUE_Regex = /^(?<srtNum>\d+)[^](?<timeStamp>\d+)[^](?<text>.*[^]*)$/;
-			let json = {
-				headers: null,
-				CSS: null,
-				body: txt.split(/\r\n\r\n|\r\r|\n\n/).map(item => {
-					//$.log(`🚧 ${$.name}`, `item: ${item}`);
-					item = item.match(body_CUE_Regex)?.groups ?? ""
-					//$.log(`🚧 ${$.name}`, `${JSON.stringify(item)}`, "");
-					return item;
-				})
-			};
-			return json;
-		};
 	})(opts)
 }
