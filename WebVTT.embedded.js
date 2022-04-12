@@ -46,7 +46,7 @@ function WebVTT(opts) {
 
 		stringify(json = this.json) {
 			let vtt = [
-				json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(this.newLine) : json.headers?.fileType ?? "WEBVTT",
+				json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(this.newLine),
 				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(this.newLine);
@@ -55,21 +55,6 @@ function WebVTT(opts) {
 				}).join(this.newLine + this.newLine)
 			].join(this.newLine + this.newLine);
 			return vtt
-		};
-
-		json2txt(json = this.json) {
-			let txt = json.body.map((item, i) => item = [i, item.timeStamp, item.text].join(this.newLine)).join(this.newLine + this.newLine);
-			return txt;
-		};
-
-		txt2json(txt = this.txt) {
-			const body_CUE_Regex = /^(?<srtNum>\d+)[^](?<timeStamp>\d+)[^](?<text>.*[^]*)$/;
-			let json = {
-				headers: null,
-				CSS: null,
-				body: txt.split(/\r\n\r\n|\r\r|\n\n/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
-			};
-			return json;
 		};
 	})(opts)
 }
