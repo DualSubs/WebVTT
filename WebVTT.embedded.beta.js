@@ -159,7 +159,7 @@ function WebVTT(opts) {
 				/***************** v1.2.0 *****************/
 				//json.headers = (json?.headers?.CSSStyle) ? ["WEBVTT", "STYLE" + newLine + json.headers.CSSboxes].join(newLine + newLine) : "WEBVTT",
 				/***************** v1.3.0-beta *****************/
-				json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(this.newLine) : json.headers?.fileType ?? "WEBVTT",
+				json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(this.newLine),
 				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(this.newLine);
