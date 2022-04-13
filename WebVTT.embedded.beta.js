@@ -2,7 +2,7 @@
 function WebVTT(opts) {
 	return new (class {
 		constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-			this.name = "WebVTT v1.7.0";
+			this.name = "WebVTT v1.8.0";
 			this.opts = opts;
 			this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 			this.vtt = new String;
