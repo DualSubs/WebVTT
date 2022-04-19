@@ -2,7 +2,7 @@
 function WebVTT(opts) {
 	return new (class {
 		constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-			this.name = "WebVTT v1.8.0";
+			this.name = "WebVTT v1.8.1";
 			this.opts = opts;
 			this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 			this.vtt = new String;
@@ -41,8 +41,8 @@ function WebVTT(opts) {
 			//const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 			//: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 			/***************** v1.8.0-beta *****************/
-			const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
-				: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
+			const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
+				: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
 			//$.log(`🚧 ${this.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 			/***************** v1.0.0-beta *****************/
 			/*
@@ -120,7 +120,7 @@ function WebVTT(opts) {
 					item.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 				}
 				// 从两头去掉空白字符的字符串
-				item.text = item.text.trim();
+				item.text = item.text?.trim() ?? "_";
 				// 是否将多行文本分割为数组，方便未来提供交替插入文本功能
 				// \r\n, \r, \n 是三种不同系统的换行方式
 				if (this.opts.includes("singleLine")) {

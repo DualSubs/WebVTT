@@ -1,7 +1,7 @@
 // refer: https://www.w3.org/TR/webvtt1/
 export class WebVTT {
 	constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-		this.name = "WebVTT v1.8.0";
+		this.name = "WebVTT v1.8.1";
 		this.opts = opts;
 		this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 		this.vtt = new String;
@@ -40,8 +40,8 @@ export class WebVTT {
 		//const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 		//: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 		/***************** v1.8.0-beta *****************/
-		const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
-			: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
+		const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
+			: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
 		//$.log(`🚧 ${this.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 		/***************** v1.0.0-beta *****************/
 		/*
@@ -118,6 +118,8 @@ export class WebVTT {
 				let ISOString = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
 				item.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 			}
+			// 从两头去掉空白字符的字符串
+			item.text = item.text?.trim() ?? "_";
 			// 是否将多行文本分割为数组，方便未来提供交替插入文本功能
 			// \r\n, \r, \n 是三种不同系统的换行方式
 			if (this.opts.includes("singleLine")) {
@@ -158,7 +160,7 @@ export class WebVTT {
 			/***************** v1.2.0 *****************/
 			//json.headers = (json?.headers?.CSSStyle) ? ["WEBVTT", "STYLE" + newLine + json.headers.CSSboxes].join(newLine + newLine) : "WEBVTT",
 			/***************** v1.3.0-beta *****************/
-			json.headers = json.headers?.Xoptions ? [json.headers?.fileType ?? "WEBVTT", json.headers?.Xoptions ?? null].join(this.newLine) : json.headers?.fileType ?? "WEBVTT",
+			json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(this.newLine),
 			json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
 			json.body = json.body.map(item => {
 				if (Array.isArray(item.text)) item.text = item.text.join(this.newLine);
