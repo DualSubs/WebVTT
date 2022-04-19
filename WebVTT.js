@@ -1,7 +1,7 @@
 // refer: https://www.w3.org/TR/webvtt1/
 export class WebVTT {
 	constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-		this.name = "WebVTT v1.8.0";
+		this.name = "WebVTT v1.8.1";
 		this.opts = opts;
 		this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 		this.vtt = new String;
@@ -12,8 +12,8 @@ export class WebVTT {
 	parse(vtt = this.vtt) {
 		const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
 		const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
-		const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
-			: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
+		const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
+			: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
 		let json = {
 			headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
 			CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
@@ -31,6 +31,7 @@ export class WebVTT {
 				let ISOString = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
 				item.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 			}
+			item.text = item.text?.trim() ?? "_";
 			if (this.opts.includes("singleLine")) {
 				item.text = item.text.replace(/\r\n|\r|\n/, " ");
 			} else if (this.opts.includes("multiLine")) {
