@@ -2,29 +2,54 @@
 function WebVTT(opts) {
 	return new (class {
 		constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-			this.name = "WebVTT v1.8.1";
+			this.name = "WebVTT v2.0.0";
 			this.opts = opts;
 			this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 			this.vtt = new String;
 			this.txt = new String;
-			this.json = { headers: {}, CSS: {}, body: [] };
+			this.json = { headers: {}, note: [], css: "", body: [] };
 		};
 
 		parse(vtt = this.vtt) {
-			const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
-			const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
 			const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
 				: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
-			let json = {
-				headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
-				CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
-				body: vtt.split(/\r\n\r\n|\r\r|\n\n/).map(item => item = item.match(body_CUE_Regex)?.groups ?? "")
+			const Array = vtt.split(/\r\n\r\n|\r\r|\n\n/);
+			const Json = {
+				headers: {},
+				note: [],
+				style: "",
+				body: []
 			};
 
-			json.body = json.body.filter(Boolean);
-			json.body = json.body.map((item, i) => {
+			Array.forEach((item, i) => {
+				item = item.trim();
+				switch (item.substring(0, 5).trim()) {
+					case "WEBVT": {
+						let array = item.split(/\r\n|\r|\n/);
+						$.log(`🚧 ${$.name}`, `array: ${array}`);
+						Json.headers.type = array.shift();
+						Json.headers.options = array;
+						break;
+					};
+					case "NOTE": {
+						let array = item.split(/\r\n|\r|\n/);
+						$.log(`🚧 ${$.name}`, `array: ${array}`);
+						Json.note = array;
+						break;
+					};
+					case "STYLE": {
+						Json.style = item;
+						break;
+					};
+					default:
+						Json.body[i] = item.match(body_CUE_Regex)?.groups ?? undefined;
+						break;
+				}
+			});
+			Json.body = Json.body.filter(Boolean);
+			Json.body = Json.body.map((item, i) => {
 				item.index = i;
-				if (json.headers?.fileType !== "WEBVTT") {
+				if (Json.headers?.type !== "WEBVTT") {
 					item.timeLine = item.timeLine.replace(",", ".");
 					item.startTime = item.startTime.replace(",", ".");
 					item.endTime = item.endTime.replace(",", ".");
@@ -41,19 +66,20 @@ function WebVTT(opts) {
 				}
 				return item
 			});
-			return json
+			return Json
 		};
 
 		stringify(json = this.json) {
 			let vtt = [
-				json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(this.newLine),
-				json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
+				json.headers = [json.headers?.type || "", json.headers?.options || ""].flat(Infinity).join(this.newLine),
+				json.note = (json.note ?? "").join(this.newLine),
+				json.style = json.style ?? "",
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(this.newLine);
-					item = `${item.timeLine} ${item?.options ?? ""}${this.newLine}${item.text}`;
+					item = `${(item.srtNum) ? item.srtNum + this.newLine : ""}${item.timeLine} ${item?.options ?? ""}${this.newLine}${item.text}`;
 					return item;
 				}).join(this.newLine + this.newLine)
-			].join(this.newLine + this.newLine);
+			].join(this.newLine + this.newLine).trim();
 			return vtt
 		};
 	})(opts)
