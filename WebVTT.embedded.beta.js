@@ -1,13 +1,13 @@
 // refer: https://www.w3.org/TR/webvtt1/
+// refer: https://developer.mozilla.org/en-US/docs/Web/API/WebVTT_API
 function WebVTT(opts) {
 	return new (class {
 		constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-			this.name = "WebVTT v2.1.1";
+			this.name = "WebVTT v2.1.3";
 			this.opts = opts;
 			this.lineBreak = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 			this.vtt = new String;
-			this.txt = new String;
-			this.json = { headers: {}, note: [], style: "", body: [] };
+			this.json = { headers: {}, comments: [], style: "", body: [] };
 		};
 
 		parse(vtt = this.vtt) {
@@ -41,8 +41,8 @@ function WebVTT(opts) {
 			//const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 			//: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 			/***************** v1.8.0-beta *****************/
-			const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<index>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
-				: /^((?<index>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
+			const WebVTT_cue_Regex = (this.opts.includes("milliseconds")) ? /^((?<index>\d+)[^])?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
+				: /^((?<index>\d+)[^])?(?<timing>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
 			//$.log(`🚧 ${this.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 			/***************** v1.0.0-beta *****************/
 			/*
@@ -102,12 +102,8 @@ function WebVTT(opts) {
 			/***************** v2.0.0 *****************/
 			const Array = vtt.split(/\r\n\r\n|\r\r|\n\n/);
 			$.log(`🚧 ${$.name}`, `Array: ${Array}`);
-			const Json = {
-				headers: {},
-				note: [],
-				style: "",
-				body: []
-			};
+			const Json = { headers: {}, comments: [], style: "", body: [] };
+
 
 			Array.forEach(item => {
 				item = item.trim();
@@ -123,8 +119,8 @@ function WebVTT(opts) {
 					case "NOTE": {
 						//let cues = item.split("NOTE ").trimEnd();
 						//$.log(`🚧 ${$.name}`, `cues: ${cues}`);
-						//Json.note = cues;
-						Json.note.push(item);
+						//Json.comments = cues;
+						Json.comments.push(item);
 						break;
 					};
 					case "STYLE": {
@@ -137,10 +133,10 @@ function WebVTT(opts) {
 						/***************** v2.0.0 *****************/
 						//Json.body[i] = item.match(body_CUE_Regex)?.groups ?? undefined;
 						/***************** v2.1.0 *****************/
-						let cue = item.match(body_CUE_Regex)?.groups;
+						let cue = item.match(WebVTT_cue_Regex)?.groups;
 						if (cue) {
 							if (Json.headers?.type !== "WEBVTT") {
-								cue.timeLine = cue?.timeLine?.replace?.(",", ".");
+								cue.timing = cue?.timing?.replace?.(",", ".");
 								cue.startTime = cue?.startTime?.replace?.(",", ".");
 								cue.endTime = cue?.endTime?.replace?.(",", ".");
 							}
@@ -160,7 +156,7 @@ function WebVTT(opts) {
 				}
 			});
 			$.log(`🚧 ${this.name}, parse WebVTT`, `Json.headers: ${JSON.stringify(Json.headers)}`, "");
-			$.log(`🚧 ${this.name}, parse WebVTT`, `Json.note: ${JSON.stringify(Json.note)}`, "");
+			$.log(`🚧 ${this.name}, parse WebVTT`, `Json.comments: ${JSON.stringify(Json.comments)}`, "");
 			$.log(`🚧 ${this.name}, parse WebVTT`, `Json.style: ${JSON.stringify(Json.style)}`, "");
 			$.log(`🚧 ${this.name}, parse WebVTT`, `Json.body: ${JSON.stringify(Json.body)}`, "");
 
@@ -234,11 +230,11 @@ function WebVTT(opts) {
 				//json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
 				/***************** v2.0.0 *****************/
 				json.headers = [json.headers?.type || "", json.headers?.options || ""].flat(Infinity).join(this.lineBreak),
-				json.note = json?.note?.join?.(this.lineBreak),
+				json.comments = json?.comments?.join?.(this.lineBreak),
 				json.style = (json?.style?.length > 0) ? ["STYLE", json.style].join(this.lineBreak) : "",
 				json.body = json.body.map(item => {
 					if (Array.isArray(item.text)) item.text = item.text.join(this.lineBreak);
-					item = `${(item.index) ? item.index + this.lineBreak : ""}${item.timeLine} ${item?.options ?? ""}${this.lineBreak}${item.text}`;
+					item = `${(item.index) ? item.index + this.lineBreak : ""}${item.timing} ${item?.settings ?? ""}${this.lineBreak}${item.text}`;
 					return item;
 				}).join(this.lineBreak + this.lineBreak)
 			].join(this.lineBreak + this.lineBreak).trim() + this.lineBreak + this.lineBreak;
