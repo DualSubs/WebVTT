@@ -3,7 +3,7 @@
 function WebVTT(opts) {
 	return new (class {
 		constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-			this.name = "WebVTT v2.1.3";
+			this.name = "WebVTT v2.1.4";
 			this.opts = opts;
 			this.lineBreak = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 			this.vtt = new String;
@@ -41,8 +41,8 @@ function WebVTT(opts) {
 			//const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 			//: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 			/***************** v1.8.0-beta *****************/
-			const WebVTT_cue_Regex = (this.opts.includes("milliseconds")) ? /^((?<index>\d+)[^])?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
-				: /^((?<index>\d+)[^])?(?<timing>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
+			const WebVTT_cue_Regex = (this.opts.includes("milliseconds")) ? /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
+				: /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
 			//$.log(`🚧 ${this.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 			/***************** v1.0.0-beta *****************/
 			/*
