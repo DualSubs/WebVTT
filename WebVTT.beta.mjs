@@ -1,12 +1,11 @@
 // refer: https://www.w3.org/TR/webvtt1/
-export class WebVTT {
+export default class WebVTT {
 	constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-		this.name = "WebVTT v1.8.1";
+		this.name = "WebVTT v2.1.4";
 		this.opts = opts;
-		this.newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
+		this.lineBreak = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 		this.vtt = new String;
-		this.txt = new String;
-		this.json = { headers: {}, CSS: {}, body: [] };
+		this.json = { headers: {}, comments: [], style: "", body: [] };
 	};
 
 	parse(vtt = this.vtt) {
@@ -22,8 +21,8 @@ export class WebVTT {
 		/***************** v1.2.0 *****************/
 		//const webVTT_headers_Regex = /^(?:(?<fileType>WEBVTT)[^][^])?(?:(?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*})?)[^][^])?/;
 		/***************** v1.3.0-beta *****************/
-		const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
-		const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
+		//const headers_WEBVTT_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>.+[^])*/;
+		//const headers_STYLE_Regex = /^(?<Style>STYLE)[^](?<Boxes>.*::cue.*(\(.*\))?((\n|.)*}$)?)/m;
 		//const headers_STYLE_Regex = /^(?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*}$)?)/m;
 		//const webVTT_headers_Regex = /^(?<fileType>WEBVTT)?[^](?<Xoptions>X-.+[^])*[^]((?<CSSStyle>STYLE)[^](?<CSSboxes>.*::cue.*(?:\(.*\))?(?:(?:\n|.)*})*)[^][^])?/;
 		//$.log(`🚧 ${this.name}, parse WebVTT`, `webVTT_Regex内容: ${webVTT_headers_Regex}`, "");
@@ -40,8 +39,8 @@ export class WebVTT {
 		//const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 		//: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 		/***************** v1.8.0-beta *****************/
-		const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
-			: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<options>.+)?[^](?<text>[\s\S]*)?$/
+		const WebVTT_cue_Regex = (this.opts.includes("milliseconds")) ? /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
+			: /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
 		//$.log(`🚧 ${this.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 		/***************** v1.0.0-beta *****************/
 		/*
@@ -87,6 +86,7 @@ export class WebVTT {
 		};
 		*/
 		/***************** v1.3.0-beta *****************/
+		/*
 		let json = {
 			headers: vtt.match(headers_WEBVTT_Regex)?.groups ?? null,
 			CSS: vtt.match(headers_STYLE_Regex)?.groups ?? null,
@@ -96,19 +96,81 @@ export class WebVTT {
 				//$.log(`🚧 ${$.name}`, `${item?.text ?? ""}`, "");
 				return item;
 			})
-		};
+		*/
+		/***************** v2.0.0 *****************/
+		const Array = vtt.split(/\r\n\r\n|\r\r|\n\n/);
+		$.log(`🚧 ${$.name}`, `Array: ${Array}`);
+		const Json = { headers: {}, comments: [], style: "", body: [] };
 
+
+		Array.forEach(item => {
+			item = item.trim();
+			$.log(`🚧 ${$.name}`, `item.substring(0, 5).trim(): ${item.substring(0, 5).trim()}`);
+			switch (item.substring(0, 5).trim()) {
+				case "WEBVT": {
+					let cues = item.split(/\r\n|\r|\n/);
+					$.log(`🚧 ${$.name}`, `cues: ${cues}`);
+					Json.headers.type = cues.shift();
+					Json.headers.options = cues;
+					break;
+				};
+				case "NOTE": {
+					//let cues = item.split("NOTE ").trimEnd();
+					//$.log(`🚧 ${$.name}`, `cues: ${cues}`);
+					//Json.comments = cues;
+					Json.comments.push(item);
+					break;
+				};
+				case "STYLE": {
+					let cues = item.split(/\r\n|\r|\n/);
+					cues.shift();
+					Json.style = cues.join(this.lineBreak);
+					break;
+				};
+				default:
+					/***************** v2.0.0 *****************/
+					//Json.body[i] = item.match(body_CUE_Regex)?.groups ?? undefined;
+					/***************** v2.1.0 *****************/
+					let cue = item.match(WebVTT_cue_Regex)?.groups;
+					if (cue) {
+						if (Json.headers?.type !== "WEBVTT") {
+							cue.timing = cue?.timing?.replace?.(",", ".");
+							cue.startTime = cue?.startTime?.replace?.(",", ".");
+							cue.endTime = cue?.endTime?.replace?.(",", ".");
+						}
+						if (this.opts.includes("timeStamp")) {
+							let ISOString = cue?.startTime?.replace?.(/(.*)/, "1970-01-01T$1Z")
+							cue.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
+						}
+						cue.text = cue?.text?.trimEnd?.();
+						if (this.opts.includes("singleLine")) {
+							cue.text = cue?.text?.replace?.(/\r\n|\r|\n/, " ");
+						} else if (this.opts.includes("multiLine")) {
+							cue.text = cue?.text?.split?.(/\r\n|\r|\n/);
+						}
+						Json.body.push(cue);
+					};
+					break;
+			}
+		});
+		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.headers: ${JSON.stringify(Json.headers)}`, "");
+		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.comments: ${JSON.stringify(Json.comments)}`, "");
+		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.style: ${JSON.stringify(Json.style)}`, "");
+		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.body: ${JSON.stringify(Json.body)}`, "");
+
+		/***************** v2.0.0 *****************/
+		/*
 		// 数组去空(不符合正则筛选的数据)
-		json.body = json.body.filter(Boolean);
+		Json.body = Json.body.filter(Boolean);
 		// 使用map映射对JSON字幕进行格式化
-		json.body = json.body.map((item, i) => {
+		Json.body = Json.body.map((item, i) => {
 			// 加入索引号方便文本传输翻译字幕
 			item.index = i;
 			// SRT格式字幕转换时间分隔符
 			// 原版
-			//if (json.headers?.[0] !== "WEBVTT") {
+			//if (Json.headers?.[0] !== "WEBVTT") {
 			// 正式版
-			if (json.headers?.fileType !== "WEBVTT") {
+			if (Json.headers?.type !== "WEBVTT") {
 				item.timeLine = item.timeLine.replace(",", ".");
 				item.startTime = item.startTime.replace(",", ".");
 				item.endTime = item.endTime.replace(",", ".");
@@ -129,25 +191,27 @@ export class WebVTT {
 			}
 			return item
 		});
+		*/
+
 		/*
 		// 时间: SRT的逗号替换为WebVTT的句号
-		if (json.headers[0] !== "WEBVTT") json.body.forEach((item, i) => {
-			json.body[i].timeLine = item.timeLine.replace(",", ".");
-			json.body[i].startTime = item.startTime.replace(",", ".");
+		if (Json.headers[0] !== "WEBVTT") Json.body.forEach((item, i) => {
+			Json.body[i].timeLine = item.timeLine.replace(",", ".");
+			Json.body[i].startTime = item.startTime.replace(",", ".");
 		});
 		// 时间: 转换为ISO标准格式再转为UNIX时间戳的数字对象再除以1000以变更为单位秒
-		if (opts.includes("timeStamp")) json.body.forEach((item, i) => {
+		if (opts.includes("timeStamp")) Json.body.forEach((item, i) => {
 			let toISOstring = item.startTime.replace(/(.*)/, "1970-01-01T$1Z")
-			json.body[i].timeStamp = Date.parse((opts.includes("milliseconds")) ? toISOstring : toISOstring / 1000)
+			Json.body[i].timeStamp = Date.parse((opts.includes("milliseconds")) ? toISOstring : toISOstring / 1000)
 		});
 		// 文本: 分割多行文本为数组
-		if (opts.includes("multiText")) json.body.forEach((item, i) => {
-			json.body[i].text = item.text.split(/[(\r\n)\r\n]/); // \r\n, \r, \n 是三种不同系统的换行方式
+		if (opts.includes("multiText")) Json.body.forEach((item, i) => {
+			Json.body[i].text = item.text.split(/[(\r\n)\r\n]/); // \r\n, \r, \n 是三种不同系统的换行方式
 		});
 		*/
-		//$.log(`🚧 ${this.name}, parse WebVTT`, `json.headers内容: ${JSON.stringify(json.headers)}`, "");
-		//$.log(`🚧 ${this.name}, parse WebVTT`, `json.body内容: ${JSON.stringify(json.body)}`, "");
-		return json
+		//$.log(`🚧 ${this.name}, parse WebVTT`, `Json.headers内容: ${JSON.stringify(Json.headers)}`, "");
+		//$.log(`🚧 ${this.name}, parse WebVTT`, `Json.body内容: ${JSON.stringify(Json.body)}`, "");
+		return Json
 	};
 
 	stringify(json = this.json) {
@@ -160,14 +224,18 @@ export class WebVTT {
 			/***************** v1.2.0 *****************/
 			//json.headers = (json?.headers?.CSSStyle) ? ["WEBVTT", "STYLE" + newLine + json.headers.CSSboxes].join(newLine + newLine) : "WEBVTT",
 			/***************** v1.3.0-beta *****************/
-			json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(this.newLine),
-			json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
+			//json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(this.newLine),
+			//json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
+			/***************** v2.0.0 *****************/
+			json.headers = [json.headers?.type || "", json.headers?.options || ""].flat(Infinity).join(this.lineBreak),
+			json.comments = json?.comments?.join?.(this.lineBreak),
+			json.style = (json?.style?.length > 0) ? ["STYLE", json.style].join(this.lineBreak) : "",
 			json.body = json.body.map(item => {
-				if (Array.isArray(item.text)) item.text = item.text.join(this.newLine);
-				item = `${item.timeLine} ${item?.options ?? ""}${this.newLine}${item.text}`;
+				if (Array.isArray(item.text)) item.text = item.text.join(this.lineBreak);
+				item = `${(item.index) ? item.index + this.lineBreak : ""}${item.timing} ${item?.settings ?? ""}${this.lineBreak}${item.text}`;
 				return item;
-			}).join(this.newLine + this.newLine)
-		].join(this.newLine + this.newLine);
+			}).join(this.lineBreak + this.lineBreak)
+		].join(this.lineBreak + this.lineBreak).trim() + this.lineBreak + this.lineBreak;
 		// 按步骤分行写法
 		/*
 		if (options.includes("cue"))
