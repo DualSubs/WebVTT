@@ -1,15 +1,11 @@
 // refer: https://www.w3.org/TR/webvtt1/
 export default class WebVTT {
-	constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-		this.name = "WebVTT v2.1.4";
-		this.opts = opts;
-		this.lineBreak = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
-		this.vtt = new String;
-		this.json = { headers: {}, comments: [], style: "", body: [] };
-	};
+	static name = "WebVTT";
+	static version = "2.2.0";
+	static about = () => console.log(`\n🟧 ${this.name} v${this.version}\n`);
 
-	parse(vtt = this.vtt) {
-		$.log(`🚧 ${this.name}, parse WebVTT`, "");
+	static parse(vtt = new String, options = { milliseconds: true, timeStamp: true, line: "single", lineBreak: "\n" }) {
+		console.log(`🚧 ${this.name}, parse WebVTT`, "");
 		// 使用[^]而非[(\r\n)\r\n]来匹配换行符 执行效率提高一倍 https://stackoverflow.com/a/16119722
 		// 数组化srt/webVTT格式的headers的Regex，预留webVTT的CSSboxes以便未来修改字幕样式
 		// .*::cue.*(\(.*\))?((\n|.)*})?
@@ -39,7 +35,7 @@ export default class WebVTT {
 		//const body_CUE_Regex = (this.opts.includes("milliseconds")) ? /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d) --> (?<endTime>(\d\d:)?\d\d:\d\d[\.,]\d\d\d)) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 		//: /^((?<srtNum>\d+)(\r\n|\r|\n))?(?<timeLine>(?<startTime>(\d\d:)?\d\d:\d\d)[\.,]\d\d\d --> (?<endTime>(?:\d\d:)?\d\d:\d\d)(?:\.|,)\d\d\d) ?(?<options>.+)?[^](?<text>[\s\S]*)$/
 		/***************** v1.8.0-beta *****************/
-		const WebVTT_cue_Regex = (this.opts.includes("milliseconds")) ? /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
+		const WebVTTCueRegex = (options.milliseconds) ? /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
 			: /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
 		//$.log(`🚧 ${this.name}, parse WebVTT`, `webVTT_body_Regex内容: ${webVTT_body_Regex}`, "");
 		/***************** v1.0.0-beta *****************/
@@ -99,17 +95,17 @@ export default class WebVTT {
 		*/
 		/***************** v2.0.0 *****************/
 		const Array = vtt.split(/\r\n\r\n|\r\r|\n\n/);
-		$.log(`🚧 ${$.name}`, `Array: ${Array}`);
+		console.log(`🚧 ${$.name}`, `Array: ${Array}`);
 		const Json = { headers: {}, comments: [], style: "", body: [] };
 
 
 		Array.forEach(item => {
 			item = item.trim();
-			$.log(`🚧 ${$.name}`, `item.substring(0, 5).trim(): ${item.substring(0, 5).trim()}`);
+			console.log(`🚧 ${$.name}`, `item.substring(0, 5).trim(): ${item.substring(0, 5).trim()}`);
 			switch (item.substring(0, 5).trim()) {
 				case "WEBVT": {
 					let cues = item.split(/\r\n|\r|\n/);
-					$.log(`🚧 ${$.name}`, `cues: ${cues}`);
+					console.log(`🚧 ${$.name}`, `cues: ${cues}`);
 					Json.headers.type = cues.shift();
 					Json.headers.options = cues;
 					break;
@@ -124,39 +120,42 @@ export default class WebVTT {
 				case "STYLE": {
 					let cues = item.split(/\r\n|\r|\n/);
 					cues.shift();
-					Json.style = cues.join(this.lineBreak);
+					Json.style = cues.join(options.lineBreak);
 					break;
 				};
 				default:
 					/***************** v2.0.0 *****************/
 					//Json.body[i] = item.match(body_CUE_Regex)?.groups ?? undefined;
 					/***************** v2.1.0 *****************/
-					let cue = item.match(WebVTT_cue_Regex)?.groups;
+					let cue = item.match(WebVTTCueRegex)?.groups;
 					if (cue) {
 						if (Json.headers?.type !== "WEBVTT") {
 							cue.timing = cue?.timing?.replace?.(",", ".");
 							cue.startTime = cue?.startTime?.replace?.(",", ".");
 							cue.endTime = cue?.endTime?.replace?.(",", ".");
 						}
-						if (this.opts.includes("timeStamp")) {
+						if (options.timeStamp) {
 							let ISOString = cue?.startTime?.replace?.(/(.*)/, "1970-01-01T$1Z")
-							cue.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
+							cue.timeStamp = (options.milliseconds) ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 						}
 						cue.text = cue?.text?.trimEnd?.();
-						if (this.opts.includes("singleLine")) {
-							cue.text = cue?.text?.replace?.(/\r\n|\r|\n/, " ");
-						} else if (this.opts.includes("multiLine")) {
-							cue.text = cue?.text?.split?.(/\r\n|\r|\n/);
-						}
+						switch (options.line) {
+							case "single":
+								cue.text = cue?.text?.replace?.(/\r\n|\r|\n/, " ");
+								break;
+							case "multi":
+								cue.text = cue?.text?.split?.(/\r\n|\r|\n/);
+								break;
+						};
 						Json.body.push(cue);
 					};
 					break;
 			}
 		});
-		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.headers: ${JSON.stringify(Json.headers)}`, "");
-		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.comments: ${JSON.stringify(Json.comments)}`, "");
-		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.style: ${JSON.stringify(Json.style)}`, "");
-		$.log(`🚧 ${this.name}, parse WebVTT`, `Json.body: ${JSON.stringify(Json.body)}`, "");
+		console.log(`🚧 ${this.name}, parse WebVTT`, `Json.headers: ${JSON.stringify(Json.headers)}`, "");
+		console.log(`🚧 ${this.name}, parse WebVTT`, `Json.comments: ${JSON.stringify(Json.comments)}`, "");
+		console.log(`🚧 ${this.name}, parse WebVTT`, `Json.style: ${JSON.stringify(Json.style)}`, "");
+		console.log(`🚧 ${this.name}, parse WebVTT`, `Json.body: ${JSON.stringify(Json.body)}`, "");
 
 		/***************** v2.0.0 *****************/
 		/*
@@ -209,13 +208,13 @@ export default class WebVTT {
 			Json.body[i].text = item.text.split(/[(\r\n)\r\n]/); // \r\n, \r, \n 是三种不同系统的换行方式
 		});
 		*/
-		//$.log(`🚧 ${this.name}, parse WebVTT`, `Json.headers内容: ${JSON.stringify(Json.headers)}`, "");
-		//$.log(`🚧 ${this.name}, parse WebVTT`, `Json.body内容: ${JSON.stringify(Json.body)}`, "");
-		return Json
+		//console.log(`🚧 ${this.name}, parse WebVTT`, `Json.headers内容: ${JSON.stringify(Json.headers)}`, "");
+		//console.log(`🚧 ${this.name}, parse WebVTT`, `Json.body内容: ${JSON.stringify(Json.body)}`, "");
+		return Json;
 	};
 
-	stringify(json = this.json) {
-		$.log(`🚧 ${this.name}, stringify WebVTT`, "");
+	static stringify(json = { headers: {}, comments: [], style: "", body: [] }, options = { milliseconds: true, timeStamp: true, line: "single", lineBreak: "\n" }) {
+		console.log(`🚧 ${this.name}, stringify WebVTT`, "");
 		//const newLine = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
 		let vtt = [
 			//json.headers = json.headers?.fileType || "WEBVTT",
@@ -224,18 +223,18 @@ export default class WebVTT {
 			/***************** v1.2.0 *****************/
 			//json.headers = (json?.headers?.CSSStyle) ? ["WEBVTT", "STYLE" + newLine + json.headers.CSSboxes].join(newLine + newLine) : "WEBVTT",
 			/***************** v1.3.0-beta *****************/
-			//json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(this.newLine),
-			//json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(this.newLine) : null,
+			//json.headers = [json.headers?.fileType || "WEBVTT", json.headers?.Xoptions || null].join(options.newLine),
+			//json.CSS = json.CSS?.Style ? [json.CSS.Style, json.CSS.Boxes].join(options.newLine) : null,
 			/***************** v2.0.0 *****************/
-			json.headers = [json.headers?.type || "", json.headers?.options || ""].flat(Infinity).join(this.lineBreak),
-			json.comments = json?.comments?.join?.(this.lineBreak),
-			json.style = (json?.style?.length > 0) ? ["STYLE", json.style].join(this.lineBreak) : "",
+			json.headers = [json.headers?.type || "", json.headers?.options || ""].flat(Infinity).join(options.lineBreak),
+			json.comments = json?.comments?.join?.(options.lineBreak),
+			json.style = (json?.style?.length > 0) ? ["STYLE", json.style].join(options.lineBreak) : "",
 			json.body = json.body.map(item => {
-				if (Array.isArray(item.text)) item.text = item.text.join(this.lineBreak);
-				item = `${(item.index) ? item.index + this.lineBreak : ""}${item.timing} ${item?.settings ?? ""}${this.lineBreak}${item.text}`;
+				if (Array.isArray(item.text)) item.text = item.text.join(options.lineBreak);
+				item = `${(item.index) ? item.index + options.lineBreak : ""}${item.timing} ${item?.settings ?? ""}${options.lineBreak}${item.text}`;
 				return item;
-			}).join(this.lineBreak + this.lineBreak)
-		].join(this.lineBreak + this.lineBreak).trim() + this.lineBreak + this.lineBreak;
+			}).join(options.lineBreak + options.lineBreak)
+		].join(options.lineBreak + options.lineBreak).trim() + options.lineBreak + options.lineBreak;
 		// 按步骤分行写法
 		/*
 		if (options.includes("cue"))
@@ -247,6 +246,6 @@ export default class WebVTT {
 			})
 		json = json.join(newLine + newLine);
 		*/
-		return vtt
+		return vtt;
 	};
 };

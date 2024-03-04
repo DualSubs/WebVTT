@@ -1,15 +1,11 @@
 // refer: https://www.w3.org/TR/webvtt1/
 export default class WebVTT {
-	constructor(opts = ["milliseconds", "timeStamp", "singleLine", "\n"]) {
-		this.name = "WebVTT v2.1.4";
-		this.opts = opts;
-		this.lineBreak = (this.opts.includes("\n")) ? "\n" : (this.opts.includes("\r")) ? "\r" : (this.opts.includes("\r\n")) ? "\r\n" : "\n";
-		this.vtt = new String;
-		this.json = { headers: {}, comments: [], style: "", body: [] };
-	};
+	static name = "WebVTT";
+	static version = "2.2.0";
+	static about = () => console.log(`\n🟧 ${this.name} v${this.version}\n`);
 
-	parse(vtt = this.vtt) {
-		const WebVTT_cue_Regex = (this.opts.includes("milliseconds")) ? /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
+	static parse(vtt = new String, options = { milliseconds: true, timeStamp: true, line: "single", lineBreak: "\n" }) {
+		const WebVTTCueRegex = (options.milliseconds) ? /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:.,]+) --> (?<endTime>[0-9:.,]+)) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
 			: /^((?<index>\d+)(\r\n|\r|\n))?(?<timing>(?<startTime>[0-9:]+)[0-9.,]+ --> (?<endTime>[0-9:]+)[0-9.,]+) ?(?<settings>.+)?[^](?<text>[\s\S]*)?$/
 		const Array = vtt.split(/\r\n\r\n|\r\r|\n\n/);
 		const Json = { headers: {}, comments: [], style: "", body: [] };
@@ -30,46 +26,49 @@ export default class WebVTT {
 				case "STYLE": {
 					let cues = item.split(/\r\n|\r|\n/);
 					cues.shift();
-					Json.style = cues.join(this.lineBreak);
+					Json.style = cues.join(options.lineBreak);
 					break;
 				};
 				default:
-					let cue = item.match(WebVTT_cue_Regex)?.groups;
+					let cue = item.match(WebVTTCueRegex)?.groups;
 					if (cue) {
 						if (Json.headers?.type !== "WEBVTT") {
 							cue.timing = cue?.timing?.replace?.(",", ".");
 							cue.startTime = cue?.startTime?.replace?.(",", ".");
 							cue.endTime = cue?.endTime?.replace?.(",", ".");
 						}
-						if (this.opts.includes("timeStamp")) {
+						if (options.timeStamp) {
 							let ISOString = cue?.startTime?.replace?.(/(.*)/, "1970-01-01T$1Z")
-							cue.timeStamp = this.opts.includes("milliseconds") ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
+							cue.timeStamp = (options.milliseconds) ? Date.parse(ISOString) : Date.parse(ISOString) / 1000;
 						}
 						cue.text = cue?.text?.trimEnd?.();
-						if (this.opts.includes("singleLine")) {
-							cue.text = cue?.text?.replace?.(/\r\n|\r|\n/, " ");
-						} else if (this.opts.includes("multiLine")) {
-							cue.text = cue?.text?.split?.(/\r\n|\r|\n/);
-						}
+						switch (options.line) {
+							case "single":
+								cue.text = cue?.text?.replace?.(/\r\n|\r|\n/, " ");
+								break;
+							case "multi":
+								cue.text = cue?.text?.split?.(/\r\n|\r|\n/);
+								break;
+						};
 						Json.body.push(cue);
 					};
 					break;
 			}
 		});
-		return Json
+		return Json;
 	};
 
-	stringify(json = this.json) {
+	static stringify(json = { headers: {}, comments: [], style: "", body: [] }, options = { milliseconds: true, timeStamp: true, line: "single", lineBreak: "\n" }) {
 		let vtt = [
-			json.headers = [json.headers?.type || "", json.headers?.options || ""].flat(Infinity).join(this.lineBreak),
-			json.comments = json?.comments?.join?.(this.lineBreak),
-			json.style = (json?.style?.length > 0) ? ["STYLE", json.style].join(this.lineBreak) : "",
+			json.headers = [json.headers?.type || "", json.headers?.options || ""].flat(Infinity).join(options.lineBreak),
+			json.comments = json?.comments?.join?.(options.lineBreak),
+			json.style = (json?.style?.length > 0) ? ["STYLE", json.style].join(options.lineBreak) : "",
 			json.body = json.body.map(item => {
-				if (Array.isArray(item.text)) item.text = item.text.join(this.lineBreak);
-				item = `${(item.index) ? item.index + this.lineBreak : ""}${item.timing} ${item?.settings ?? ""}${this.lineBreak}${item.text}`;
+				if (Array.isArray(item.text)) item.text = item.text.join(options.lineBreak);
+				item = `${(item.index) ? item.index + options.lineBreak : ""}${item.timing} ${item?.settings ?? ""}${options.lineBreak}${item.text}`;
 				return item;
-			}).join(this.lineBreak + this.lineBreak)
-		].join(this.lineBreak + this.lineBreak).trim() + this.lineBreak + this.lineBreak;
-		return vtt
+			}).join(options.lineBreak + options.lineBreak)
+		].join(options.lineBreak + options.lineBreak).trim() + options.lineBreak + options.lineBreak;
+		return vtt;
 	};
 };
